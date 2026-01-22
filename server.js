@@ -4,6 +4,7 @@ import cors from 'cors'
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminDashboardRoutes from './routes/admin/adminDashboardRoutes.js'
 import adminStudentsRoutes from './routes/admin/adminStudents.js';
+import testRoutes from './routes/admin/testRoute.js'
 
 const app = express();
 
@@ -15,6 +16,9 @@ app.use('/api/admin', adminAuthRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 app.use('/api/admin/students', adminStudentsRoutes);
+
+app.use("/api/test", testRoutes);
+
 
 app.listen(5000, () => {
   console.log("🚀 Server running on port 5000");

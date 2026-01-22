@@ -1,5 +1,91 @@
 import pool from "../../config/db.js";
 
+
+
+export const addStudent = async (req, res) => {
+  
+  const {
+    full_name, email, phone, gender, class_id, roll_no, blood_group, address, father_name, mother_name, photo
+  } = req.body;
+
+  if(!full_name || !email || !phone || !gender || !class_id) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const emailCheckQuery = `
+    SELECT id FROM students WHERE email = $1 AND is_deleted = false
+    `;
+
+    const emailCheck = await pool.query(emailCheckQuery, [email]);
+
+    if(emailCheck.rows.length > 0) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
+    const rollCheckQuery = `
+    SELECT id FROM students WHERE roll_no = $1 AND class_id = $2 AND is_deleted = false
+    `;
+    
+    const rollCheck = await pool.query(rollCheckQuery, [roll_no, class_id]);
+
+    if (rollCheck.rows.length > 0) {
+      return res.status(409).json({ message: "Roll number already exists in this class" });
+    }
+
+        const insertQuery = `
+      INSERT INTO students (
+        full_name,
+        email,
+        phone,
+        gender,
+        blood_group,
+        address,
+        father_name,
+        mother_name,
+        roll_no,
+        class_id,
+        photo,
+        is_active,
+        is_deleted
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true,false
+      )
+      RETURNING id
+    `;
+
+    const values = [
+      full_name.trim(),
+      email.toLowerCase().trim(),
+      phone.trim(),
+      gender,
+      blood_group || null,
+      address || null,
+      father_name || null,
+      mother_name || null,
+      roll_no,
+      class_id,
+      photo || null
+    ];
+
+    const result = await pool.query(insertQuery, values);
+
+    return res.status(201).json({
+      message: "Student added successfully",
+      student_id: result.rows[0].id
+    });
+    
+  } catch (error) {
+    console.error("Add Student Error:", error);
+    return res.status(500).json({
+      message: "Internal server error"
+    });
+
+  }
+
+}
+
 export const getStudents = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -73,6 +159,46 @@ export const getStudents = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getStudentById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        s.id,
+        s.full_name,
+        s.email,
+        s.phone,
+        s.gender,
+        s.blood_group,
+        s.roll_no,
+        s.father_name,
+        s.mother_name,
+        s.address,
+        s.photo,
+        s.is_active,
+        s.created_at,
+        c.name AS class_name
+      FROM students s
+      LEFT JOIN classes c ON c.id = s.class_id
+      WHERE s.id = $1 AND s.is_deleted = false
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.json({ data: result.rows[0] });
+  } catch (error) {
+    console.error("Get student error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 export const getClasses = async (req, res) => {
   try {

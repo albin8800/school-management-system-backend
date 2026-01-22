@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 
 const adminAuthMiddleware = (req, res, next) => {
+
+    
     try {
         const authHeader = req.headers.authorization;
 
@@ -16,6 +18,9 @@ const adminAuthMiddleware = (req, res, next) => {
             id: decoded.adminId,
             role: decoded.role,
         };
+
+       
+
 
         next();
 
