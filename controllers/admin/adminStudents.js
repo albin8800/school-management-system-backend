@@ -174,6 +174,7 @@ export const getStudentById = async (req, res) => {
         s.gender,
         s.blood_group,
         s.roll_no,
+        s.class_id,
         s.father_name,
         s.mother_name,
         s.address,
@@ -218,3 +219,104 @@ export const getClasses = async (req, res) => {
   }
 };
 
+export const updateStudent = async (req, res) => {
+
+  const { id } = req.params;
+
+  const {
+      full_name,
+    email,
+    phone,
+    gender,
+    blood_group,
+    class_id,
+    roll_no,
+    father_name,
+    mother_name,
+    address,
+    photo,
+  } = req.body;
+
+    const parsedClassId =
+  class_id === "" || class_id === undefined ? null : Number(class_id);
+
+  try {
+    const result = await pool.query(
+  `
+  UPDATE students
+  SET
+    full_name = $1,
+    email = $2,
+    phone = $3,
+    gender = $4,
+    blood_group = $5,
+    class_id = $6,
+    roll_no = $7,
+    father_name = $8,
+    mother_name = $9,
+    address = $10,
+    photo = $11,
+    updated_at = NOW()
+  WHERE id = $12 AND is_deleted = false
+  RETURNING *
+  `,
+  [
+    full_name,
+    email,
+    phone,
+    gender,
+    blood_group,
+    parsedClassId, 
+    roll_no,
+    father_name,
+    mother_name,
+    address,
+    photo,
+    id,
+  ]
+);
+
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    res.json({
+      message: "Student updated successfully",
+      data: result.rows[0],
+    });
+    
+  } catch (error) {
+    console.error("Update student error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+export const deleteStudent = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `
+      UPDATE students
+      SET
+        is_deleted = true,
+        is_active = false,
+        updated_at = NOW()
+      WHERE id = $1 AND is_deleted = false
+      RETURNING id
+      `,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.json({
+      message: "Student deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete student error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
